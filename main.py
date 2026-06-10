@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse, RedirectResponse, FileResponse
 
 # Suas importações modulares
 from logs import LoggerForDownload
-from downloader import download_youtube_video
+from downloader import download_youtube_video,validate_youtube_url
 
 # Importa a router de autenticação
 from auth import router as auth_router
@@ -64,6 +64,9 @@ async def ler_logs():
     
 @app.get("/info", dependencies=[Depends(verificar_sessao)])
 async def obter_informacoes(url: str):
+    if not validate_youtube_url(url):
+        raise HTTPException(status_code=400, detail="URL inválida ou não permitida")
+    
     opts_info = {'quiet': True, 'extract_flat': False} 
     try:
         with yt_dlp.YoutubeDL(opts_info) as ydl:
@@ -80,6 +83,9 @@ async def processar_download(
     media_type: str = Form(...), 
     quality: str = Form(...)
 ):
+    if not validate_youtube_url(url):
+        raise HTTPException(status_code=400, detail="URL inválida ou não permitida")
+
     background_tasks.add_task(download_youtube_video, url, ydl_opts)
     mensagem_sucesso = f"Download adicionado à fila! Verifique o terminal de logs."
     return {"status": "success", "message": mensagem_sucesso}
