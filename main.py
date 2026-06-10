@@ -1,5 +1,6 @@
 import os 
 import yt_dlp
+import secrets
 from dotenv import load_dotenv
 
 from fastapi import FastAPI, Request, Form, BackgroundTasks, Depends, HTTPException, status
@@ -35,6 +36,7 @@ ydl_opts = {
 }
 
 app = FastAPI()
+
 templates = Jinja2Templates(directory="templates")
 
 app.include_router(auth_router)
@@ -87,7 +89,7 @@ async def processar_download(
         raise HTTPException(status_code=400, detail="URL inválida ou não permitida")
 
     background_tasks.add_task(download_youtube_video, url, ydl_opts)
-    mensagem_sucesso = f"Download adicionado à fila! Verifique o terminal de logs."
+    mensagem_sucesso = f"Download adicionado à fila!"
     return {"status": "success", "message": mensagem_sucesso}
 
 # --- NOVAS ROTAS DE GERENCIAMENTO DE ARQUIVOS ---
