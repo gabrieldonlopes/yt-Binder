@@ -116,11 +116,44 @@
         const logConsole = document.getElementById('logConsole');
         const fileList = document.getElementById('fileList');
 
-        // Pré-visualização com alternância de estados
+        // Função para exibir erros
+        function showError(message, isError = true) {
+            const errorAlert = document.getElementById('errorAlert');
+            if (errorAlert) {
+                errorAlert.textContent = message;
+                errorAlert.classList.remove('hidden');
+                setTimeout(() => errorAlert.classList.add('hidden'), 5000);
+            }
+            
+            // Também mostra no statusAlert para compatibilidade
+            statusAlert.textContent = message;
+            statusAlert.classList.remove('hidden', 'bg-green-100', 'text-green-800');
+            statusAlert.classList.add(isError ? 'bg-red-100' : 'bg-green-100', isError ? 'text-red-800' : 'text-green-800');
+            
+            setTimeout(() => {
+                statusAlert.classList.add('hidden');
+                statusAlert.classList.remove('bg-red-100', 'text-red-800', 'bg-green-100', 'text-green-800');
+            }, 5000);
+        }
+
+        // Função para validar URL antes de enviar
+        function isValidYouTubeUrl(url) {
+            const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/;
+            return youtubeRegex.test(url);
+        }
+
+        // Pré-visualização com validação de URL
         urlInput.addEventListener('input', async (e) => {
-            const url = e.target.value;
-            if (url.includes('youtube.com') || url.includes('youtu.be')) {
-                // Esconde a mensagem "Aguardando" e mostra o card de conteúdo
+            const url = e.target.value.trim();
+            
+            if (!url) {
+                previewEmpty.classList.remove('hidden');
+                previewContent.classList.add('hidden');
+                previewContent.classList.remove('flex');
+                return;
+            }
+
+            if (isValidYouTubeUrl(url)) {
                 previewEmpty.classList.add('hidden');
                 previewContent.classList.remove('hidden');
                 previewContent.classList.add('flex');
@@ -130,24 +163,45 @@
 
                 try {
                     const response = await fetch(`/info?url=${encodeURIComponent(url)}`);
-                    if (!response.ok) throw new Error('Erro');
                     const data = await response.json();
+                    
+                    if (!response.ok) {
+                        // Trata erro 400 da API
+                        throw new Error(data.detail || data.error || "URL inválida ou não suportada");
+                    }
+                    
                     videoTitle.textContent = data.title;
                     videoThumb.src = data.thumbnail;
                 } catch (error) {
-                    videoTitle.textContent = "Erro ao carregar pré-visualização.";
+                    console.error("Erro na pré-visualização:", error);
+                    videoTitle.textContent = error.message || "Erro ao carregar pré-visualização.";
+                    videoThumb.src = "";
+                    showError(error.message || "URL inválida ou não suportada pelo servidor", true);
                 }
             } else {
-                // Volta para o estado inicial se o input for limpo/inválido
                 previewEmpty.classList.remove('hidden');
                 previewContent.classList.add('hidden');
                 previewContent.classList.remove('flex');
+                
+                // Se o campo não está vazio mas URL é inválida, mostra aviso sutil
+                if (url.length > 0) {
+                    videoTitle.textContent = "URL inválida. Use um link do YouTube.";
+                }
             }
         });
 
-        // Submissão de download
+        // Submissão de download com validação
         downloadForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            
+            const url = urlInput.value.trim();
+            
+            // Validação frontend antes de enviar
+            if (!isValidYouTubeUrl(url)) {
+                showError("URL inválida. Por favor, insira um link válido do YouTube.", true);
+                return;
+            }
+            
             const formData = new FormData(downloadForm);
             const btn = document.getElementById('btnDownload');
             
@@ -155,10 +209,20 @@
             btn.innerHTML = `Processando...`;
 
             try {
-                const response = await fetch('/download', { method: 'POST', body: formData });
+                const response = await fetch('/download', { 
+                    method: 'POST', 
+                    body: formData 
+                });
+                
                 const result = await response.json();
-                statusAlert.textContent = result.message;
-                statusAlert.classList.remove('hidden');
+                
+                if (!response.ok) {
+                    // Trata erro 400 da API
+                    throw new Error(result.detail || result.error || "Erro ao processar download");
+                }
+                
+                // Sucesso
+                showError(result.message || "Download adicionado à fila!", false);
                 urlInput.value = '';
                 
                 // Reseta a área de preview visualmente
@@ -166,16 +230,16 @@
                 previewContent.classList.add('hidden');
                 previewContent.classList.remove('flex');
 
-                setTimeout(() => statusAlert.classList.add('hidden'), 5000);
             } catch (error) {
-                alert("Erro ao enviar.");
+                console.error("Erro no download:", error);
+                showError(error.message || "Erro ao enviar. Verifique a URL e tente novamente.", true);
             } finally {
                 btn.disabled = false;
                 btn.textContent = "Colocar na Fila de Download";
             }
         });
 
-        // Logs
+        // Logs (mantido igual)
         let autoScroll = true;
         logConsole.addEventListener('scroll', () => {
             const isAtBottom = Math.abs((logConsole.scrollHeight - logConsole.scrollTop) - logConsole.clientHeight) < 5;
@@ -185,21 +249,40 @@
         async function fetchLogs() {
             try {
                 const response = await fetch('/logs');
+                
+                if (!response.ok) {
+                    // Se não autenticado, redireciona (mas o backend já faz isso)
+                    if (response.status === 401) {
+                        window.location.href = '/login';
+                    }
+                    return;
+                }
+                
                 const data = await response.json();
                 if (logConsole.textContent !== data.logs) {
                     logConsole.textContent = data.logs;
                     if (autoScroll) logConsole.scrollTop = logConsole.scrollHeight;
                 }
-            } catch (error) {}
+            } catch (error) {
+                console.error("Erro ao buscar logs:", error);
+            }
         }
 
-        // Buscar lista de arquivos
+        // Buscar lista de arquivos (com tratamento de erro)
         async function fetchArquivos() {
             try {
                 const response = await fetch('/arquivos');
+                
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        window.location.href = '/login';
+                    }
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
                 const data = await response.json();
                 
-                if (data.arquivos.length === 0) {
+                if (!data.arquivos || data.arquivos.length === 0) {
                     fileList.innerHTML = '<p class="text-gray-500 text-xs text-center mt-4">Nenhum arquivo encontrado.</p>';
                     return;
                 }
@@ -224,15 +307,30 @@
                     fileList.appendChild(item);
                 });
             } catch (error) {
-                console.error("Erro ao buscar arquivos", error);
+                console.error("Erro ao buscar arquivos:", error);
+                fileList.innerHTML = '<p class="text-red-500 text-xs text-center mt-4">Erro ao carregar lista de arquivos.</p>';
             }
         }
 
+        // Verificar autenticação periódica
+        async function checkAuth() {
+            try {
+                const response = await fetch('/arquivos');
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                }
+            } catch (error) {
+                console.error("Erro na verificação de autenticação:", error);
+            }
+        }
+
+        // Inicialização com verificação de autenticação
         setInterval(fetchLogs, 1500);
         setInterval(fetchArquivos, 5000);
+        setInterval(checkAuth, 60000); // Verifica autenticação a cada minuto
         
         fetchLogs();
         fetchArquivos();
-    </script>
+</script>
 </body>
 </html>
