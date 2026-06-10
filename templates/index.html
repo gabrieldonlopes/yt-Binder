@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YT-Binder Downloader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+
+    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+        <h1 class="text-2xl font-bold mb-6 text-center text-gray-800">Baixar Vídeo</h1>
+
+        <form action="/download" method="POST" class="space-y-4">
+            
+            <div>
+                <label for="url" class="block text-sm font-medium text-gray-700">URL do Vídeo</label>
+                <input type="url" name="url" id="url" required placeholder="https://www.youtube.com/watch?v=..." 
+                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <div>
+                <label for="media_type" class="block text-sm font-medium text-gray-700">Tipo de Mídia</label>
+                <select name="media_type" id="media_type" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white">
+                    <option value="video_audio">Vídeo + Áudio</option>
+                    </select>
+            </div>
+
+            <div>
+                <label for="quality" class="block text-sm font-medium text-gray-700">Qualidade</label>
+                <select name="quality" id="quality" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white">
+                    <option value="best">Melhor Qualidade</option>
+                    </select>
+            </div>
+
+            <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+                Iniciar Download
+            </button>
+        </form>
+
+        {% if mensagem %}
+        <div class="mt-4 p-4 text-sm text-green-700 bg-green-100 rounded-lg" role="alert">
+            {{ mensagem }}
+        </div>
+        {% endif %}
+
+    </div>
+
+</body>
+</html>
