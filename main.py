@@ -12,6 +12,7 @@ from downloader import download_youtube_video
 
 # Importa a router de autenticação
 from auth import router as auth_router
+from sessions import validate_session
 
 # Carrega as variáveis de ambiente
 load_dotenv()
@@ -23,8 +24,8 @@ os.makedirs(DOWNLOAD_PATH, exist_ok=True) # Cria a pasta se não existir
 ydl_opts = {
     'format': 'bestvideo+bestaudio/best',
     'merge_output_format': 'mp4',
-    #'cookiesfrombrowser': ('firefox',), 
-    'cookiefile': '/app/youtube_cookies.txt',
+    'cookiesfrombrowser': ('firefox',), 
+    #'cookiefile': '/app/youtube_cookies.txt',
     'logger': LoggerForDownload(),
     'js_runtimes': {'node': {}},
     'remote_components': ['ejs:github'],
@@ -38,19 +39,20 @@ templates = Jinja2Templates(directory="templates")
 
 app.include_router(auth_router)
 
-# --- SISTEMA DE PROTEÇÃO ---
 def verificar_sessao(request: Request):
-    cookie = request.cookies.get("sessao_yt_binder")
-    if cookie != "autenticado":
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Acesso negado. Faça login.")
+    session_token = request.cookies.get("session_token")
+    if not validate_session(session_token):
+        raise HTTPException(status_code=401, detail="Não autenticado")
     return True
 
 # --- ROTAS DA INTERFACE ---
 @app.get("/")
 async def pagina_inicial(request: Request):
-    if request.cookies.get("sessao_yt_binder") != "autenticado":
-        return RedirectResponse(url="/login")
-    return templates.TemplateResponse(request=request, name="index.html")
+    try:
+        verificar_sessao(request)
+        return templates.TemplateResponse(request=request, name="index.html")
+    except HTTPException:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
 
 @app.get("/logs", dependencies=[Depends(verificar_sessao)])
 async def ler_logs():
