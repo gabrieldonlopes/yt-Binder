@@ -3,48 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YT-Binder Downloader</title>
+    <title>YT-Binder</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        .font-google-code {
+            font-family: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+    </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center h-screen">
+<body class="bg-gray-100 h-screen w-screen flex flex-col p-4 md:p-6 overflow-hidden">
 
-    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h1 class="text-2xl font-bold mb-6 text-center text-gray-800">Baixar Vídeo</h1>
+    <h1 class="text-2xl font-bold mb-4 text-gray-800 text-center flex-shrink-0">
+        YT-Binder
+    </h1>
 
-        <form action="/download" method="POST" class="space-y-4">
+    <div class="flex-grow flex flex-col gap-4 min-h-0 max-w-5xl mx-auto w-full">
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 flex-shrink-0">
             
-            <div>
-                <label for="url" class="block text-sm font-medium text-gray-700">URL do Vídeo</label>
-                <input type="url" name="url" id="url" required placeholder="https://www.youtube.com/watch?v=..." 
-                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500">
+            <div class="bg-white p-5 rounded-lg shadow-md">
+                <form id="downloadForm" class="space-y-3">
+                    <div>
+                        <label for="url" class="block text-sm font-medium text-gray-700 mb-1">URL do Vídeo</label>
+                        <input type="url" name="url" id="url" required placeholder="Cole o link do YouTube aqui..." 
+                               class="w-full border border-gray-300 rounded text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Mídia</label>
+                            <select name="media_type" class="w-full border border-gray-300 rounded text-sm p-2 bg-white">
+                                <option value="video_audio">Vídeo + Áudio</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Qualidade</label>
+                            <select name="quality" class="w-full border border-gray-300 rounded text-sm p-2 bg-white">
+                                <option value="best">Máxima</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="btnDownload" class="w-full bg-blue-600 text-white font-bold py-2.5 px-4 rounded hover:bg-blue-700 text-sm transition-colors mt-2">
+                        Colocar na Fila
+                    </button>
+                </form>
+                
+                <div id="statusAlert" class="hidden mt-3 p-2 text-xs text-green-800 bg-green-100 rounded font-medium text-center"></div>
             </div>
 
-            <div>
-                <label for="media_type" class="block text-sm font-medium text-gray-700">Tipo de Mídia</label>
-                <select name="media_type" id="media_type" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white">
-                    <option value="video_audio">Vídeo + Áudio</option>
-                    </select>
+            <div id="previewCard" class="bg-white p-4 rounded-lg shadow-md hidden flex-shrink-0 transition-all flex flex-col justify-center items-center text-center">
+                <img id="videoThumb" src="" alt="Thumbnail" class="w-full max-h-36 rounded shadow-sm mb-3 object-contain bg-gray-100">
+                <h2 id="videoTitle" class="text-sm font-bold text-gray-800 leading-tight line-clamp-2">Carregando...</h2>
             </div>
-
-            <div>
-                <label for="quality" class="block text-sm font-medium text-gray-700">Qualidade</label>
-                <select name="quality" id="quality" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-white">
-                    <option value="best">Melhor Qualidade</option>
-                    </select>
-            </div>
-
-            <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
-                Iniciar Download
-            </button>
-        </form>
-
-        {% if mensagem %}
-        <div class="mt-4 p-4 text-sm text-green-700 bg-green-100 rounded-lg" role="alert">
-            {{ mensagem }}
         </div>
-        {% endif %}
+
+        <div class="bg-[#1e1e1e] rounded-lg shadow-inner flex flex-col border border-gray-800 min-h-0 flex-grow max-h-[35vh] mt-2">
+            <div class="bg-[#2d2d2d] px-3 py-1 border-b border-black flex items-center justify-between flex-shrink-0 rounded-t-lg">
+                <div class="flex items-center gap-1.5">
+                    <div class="w-2.5 h-2.5 rounded-full bg-red-500 opacity-80"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-yellow-500 opacity-80"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-green-500 opacity-80"></div>
+                </div>
+                <span class="text-gray-500 text-[10px] font-google-code uppercase tracking-wider">yt-binder logs</span>
+            </div>
+            
+            <pre id="logConsole" class="text-green-500 font-google-code text-[11px] leading-relaxed p-3 overflow-y-auto flex-grow whitespace-pre-wrap scroll-smooth"></pre>
+        </div>
 
     </div>
 
+    <script>
+        const urlInput = document.getElementById('url');
+        const previewCard = document.getElementById('previewCard');
+        const videoThumb = document.getElementById('videoThumb');
+        const videoTitle = document.getElementById('videoTitle');
+        const downloadForm = document.getElementById('downloadForm');
+        const statusAlert = document.getElementById('statusAlert');
+        const logConsole = document.getElementById('logConsole');
+
+        urlInput.addEventListener('input', async (e) => {
+            const url = e.target.value;
+            if (url.includes('youtube.com') || url.includes('youtu.be')) {
+                previewCard.classList.remove('hidden');
+                videoTitle.textContent = "Buscando informações...";
+                videoThumb.src = "";
+
+                try {
+                    const response = await fetch(`/info?url=${encodeURIComponent(url)}`);
+                    if (!response.ok) throw new Error('Erro');
+                    const data = await response.json();
+                    videoTitle.textContent = data.title;
+                    videoThumb.src = data.thumbnail;
+                } catch (error) {
+                    videoTitle.textContent = "Erro ao carregar pré-visualização.";
+                }
+            } else {
+                previewCard.classList.add('hidden');
+            }
+        });
+
+        downloadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(downloadForm);
+            const btn = document.getElementById('btnDownload');
+            
+            btn.disabled = true;
+            btn.innerHTML = `Processando...`;
+
+            try {
+                const response = await fetch('/download', { method: 'POST', body: formData });
+                const result = await response.json();
+                statusAlert.textContent = result.message;
+                statusAlert.classList.remove('hidden');
+                urlInput.value = '';
+                setTimeout(() => statusAlert.classList.add('hidden'), 5000);
+            } catch (error) {
+                alert("Erro ao enviar.");
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Colocar na Fila";
+            }
+        });
+
+        let autoScroll = true;
+
+        logConsole.addEventListener('scroll', () => {
+            const isAtBottom = Math.abs((logConsole.scrollHeight - logConsole.scrollTop) - logConsole.clientHeight) < 5;
+            autoScroll = isAtBottom;
+        });
+
+        async function fetchLogs() {
+            try {
+                const response = await fetch('/logs');
+                const data = await response.json();
+                
+                if (logConsole.textContent !== data.logs) {
+                    logConsole.textContent = data.logs;
+                    if (autoScroll) {
+                        logConsole.scrollTop = logConsole.scrollHeight;
+                    }
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        setInterval(fetchLogs, 1500);
+        fetchLogs();
+    </script>
 </body>
 </html>
