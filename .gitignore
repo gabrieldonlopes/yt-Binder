@@ -1,0 +1,6 @@
+.venv
+*.log
+*.mp4
+videos
+.env
+docker-compose.yml

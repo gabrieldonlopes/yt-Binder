@@ -23,7 +23,8 @@ os.makedirs(DOWNLOAD_PATH, exist_ok=True) # Cria a pasta se não existir
 ydl_opts = {
     'format': 'bestvideo+bestaudio/best',
     'merge_output_format': 'mp4',
-    'cookiesfrombrowser': ('firefox',), 
+    #'cookiesfrombrowser': ('firefox',), 
+    'cookiefile': '/app/youtube_cookies.txt',
     'logger': LoggerForDownload(),
     'js_runtimes': {'node': {}},
     'remote_components': ['ejs:github'],
