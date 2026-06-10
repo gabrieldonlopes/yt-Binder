@@ -21,20 +21,26 @@ async def pagina_login(request: Request):
     return templates.TemplateResponse(request=request, name="login.html")
 
 @router.post("/login")
-async def processar_login(username: str = Form(...), password: str = Form(...)):
-    if username == ADMIN_USER and password == ADMIN_PASS:
+async def processar_login(request: Request, username: str = Form(...), password: str = Form(...)):
+    if secrets.compare_digest(username, ADMIN_USER or "") and secrets.compare_digest(password, ADMIN_PASS or ""):
         session_token = create_session() 
-        
         response = RedirectResponse(url="/", status_code=302)
         response.set_cookie(
             key="session_token",
             value=session_token,
             httponly=True,
-            secure=True,
+            secure=True,  # Obrigatório para HTTPS na internet
             samesite="lax",
             max_age=SESSION_EXPIRY
         )
         return response
+        
+    # Se falhar, renderiza novamente com mensagem de erro
+    return templates.TemplateResponse(
+        request=request, 
+        name="login.html", 
+        context={"erro": "Usuário ou senha incorretos."}
+    )
 
 @router.get("/logout")
 async def logout(request: Request):
